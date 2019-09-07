@@ -1,6 +1,6 @@
-# Repetier-Firmware - the fast and user friendly firmware
+# Joto Firmware - based on Repetier-firmware
 
-## Notes for developers/pull requests
+## Notes for developers
 
 This software is open source licensed under the GPL V3. Please see gpl.txt
 
