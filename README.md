@@ -8,10 +8,6 @@ This software is open source licensed under the GPL V3. Please see gpl.txt
 WARNING: Please note that Those Ltd. cannot be held responsible for any damage done to your Joto device if you modify or upload a custom version of this firmware. 
 This firmware is provided 'as is' with no warranty. Modified firmware can harm your Joto. Use at your own risk.
 
-
-
-
-
 <!-- 
 ### Version 1.0 information
 
@@ -145,4 +141,4 @@ For documentation and installation please visit
 
 ## Changelog
 
-See changelog.txt --> -->
+See changelog.txt -->
