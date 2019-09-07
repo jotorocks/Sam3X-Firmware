@@ -323,20 +323,34 @@ bool Printer::isPositionAllowed(float x, float y, float z) {
     return allowed;
 }
 
+//void Printer::setFanSpeedDirectly(uint8_t speed) {
+//	uint8_t trimmedSpeed = TRIM_FAN_PWM(speed);
+//#if FAN_PIN > -1 && FEATURE_FAN_CONTROL
+//    if(pwm_pos[PWM_FAN1] == trimmedSpeed)
+//        return;
+//#if FAN_KICKSTART_TIME
+//    if(fanKickstart == 0 && speed > pwm_pos[PWM_FAN1] && speed < 85) {
+//        if(pwm_pos[PWM_FAN1]) fanKickstart = FAN_KICKSTART_TIME / 100;
+//        else                  fanKickstart = FAN_KICKSTART_TIME / 25;
+//    }
+//#endif
+//    pwm_pos[PWM_FAN1] = trimmedSpeed;
+//#endif
+//}
+
 void Printer::setFanSpeedDirectly(uint8_t speed) {
-	uint8_t trimmedSpeed = TRIM_FAN_PWM(speed);
-#if FAN_PIN > -1 && FEATURE_FAN_CONTROL
-    if(pwm_pos[PWM_FAN1] == trimmedSpeed)
-        return;
-#if FAN_KICKSTART_TIME
-    if(fanKickstart == 0 && speed > pwm_pos[PWM_FAN1] && speed < 85) {
-        if(pwm_pos[PWM_FAN1]) fanKickstart = FAN_KICKSTART_TIME / 100;
-        else                  fanKickstart = FAN_KICKSTART_TIME / 25;
-    }
-#endif
-    pwm_pos[PWM_FAN1] = trimmedSpeed;
-#endif
+  //JOT
+  int input = speed;
+  int microsecs = ((speed*7.84)+500);
+  if(speed == 0){
+    HAL::servoMicroseconds(0, 0, 100);
+    //WRITE(SERVO0_PIN, LOW);
+  }else{
+    HAL::servoMicroseconds(0, microsecs, false);
+  }
 }
+
+
 void Printer::setFan2SpeedDirectly(uint8_t speed) {
 	uint8_t trimmedSpeed = TRIM_FAN_PWM(speed);
 #if FAN2_PIN > -1 && FEATURE_FAN2_CONTROL
@@ -1139,12 +1153,18 @@ void Printer::setup() {
 #if defined(DRV_TMC2130)
     // TMC2130 motor drivers
 #if TMC2130_ON_X
-    Printer::tmc_driver_x = new TMC2130Stepper(X_ENABLE_PIN, X_DIR_PIN, X_STEP_PIN, TMC2130_X_CS_PIN);
+    #define MOSI_PIN  16
+    #define MISO_PIN  17
+    #define SCK_PIN   54
+    Printer::tmc_driver_x = new TMC2130Stepper(X_ENABLE_PIN, X_DIR_PIN, X_STEP_PIN, TMC2130_X_CS_PIN, MOSI_PIN, MISO_PIN, SCK_PIN);
     configTMC2130(Printer::tmc_driver_x, TMC2130_STEALTHCHOP_X, TMC2130_STALLGUARD_X,
     TMC2130_PWM_AMPL_X, TMC2130_PWM_GRAD_X, TMC2130_PWM_AUTOSCALE_X, TMC2130_PWM_FREQ_X);
 #endif
 #if TMC2130_ON_Y > 0
-    Printer::tmc_driver_y = new TMC2130Stepper(Y_ENABLE_PIN, Y_DIR_PIN, Y_STEP_PIN, TMC2130_Y_CS_PIN);
+    #define MOSI_PIN  16
+    #define MISO_PIN  17
+    #define SCK_PIN   54
+    Printer::tmc_driver_y = new TMC2130Stepper(Y_ENABLE_PIN, Y_DIR_PIN, Y_STEP_PIN, TMC2130_Y_CS_PIN, MOSI_PIN, MISO_PIN, SCK_PIN);
     configTMC2130(Printer::tmc_driver_y, TMC2130_STEALTHCHOP_Y, TMC2130_STALLGUARD_Y,
     TMC2130_PWM_AMPL_Y, TMC2130_PWM_GRAD_Y, TMC2130_PWM_AUTOSCALE_Y, TMC2130_PWM_FREQ_Y);
 #endif
@@ -2644,29 +2664,31 @@ void Printer::stopPrint() {
     void Printer::configTMC2130(TMC2130Stepper* tmc_driver, bool tmc_stealthchop, int8_t tmc_sgt,
       uint8_t tmc_pwm_ampl, uint8_t tmc_pwm_grad, bool tmc_pwm_autoscale, uint8_t tmc_pwm_freq) {
         while(!tmc_driver->stst());                     // Wait for motor stand-still
-        tmc_driver->begin();                            // Initiate pins and registries
-		// Using internal reference should be good enough and work on more drivers
-        // tmc_driver->I_scale_analog(true);               // Set current reference source
-        tmc_driver->interpolate(true);                  // Set internal micro step interpolation
+        tmc_driver->begin();                            // Initiate pins and registeries
+        tmc_driver->I_scale_analog(true);               // Set current reference source
+        tmc_driver->interpolate(true);                  // Set internal microstep interpolation
         tmc_driver->pwm_ampl(tmc_pwm_ampl);             // Chopper PWM amplitude
-        tmc_driver->pwm_grad(tmc_pwm_grad);             // Velocity gradient for chopper PWM amplitude
-        tmc_driver->pwm_autoscale(tmc_pwm_autoscale);   // Chopper PWM autos scaling
-        tmc_driver->pwm_freq(tmc_pwm_freq);             // Chopper PWM frequency selection
-        tmc_driver->stealthChop(tmc_stealthchop);       // Enable extremely quiet stepping
+        tmc_driver->pwm_grad(2);                        // Velocity gradient for chopper PWM amplitude
+        tmc_driver->pwm_autoscale(1);                   // Chopper PWM autoscaling
+        tmc_driver->pwm_freq(2);                        // Chopper PWM frequency selection
+        tmc_driver->stealthChop(1);                     // Enable extremely quiet stepping
         tmc_driver->sg_stall_value(tmc_sgt);            // StallGuard sensitivity
+        tmc_driver->stealth_autoscale(1);               // StallGuard sensitivity
+
     }
+
+//    configTMC2130(Printer::tmc_driver_x, TMC2130_STEALTHCHOP_X, TMC2130_STALLGUARD_X,
+//    TMC2130_PWM_AMPL_X, TMC2130_PWM_GRAD_X, TMC2130_PWM_AUTOSCALE_X, TMC2130_PWM_FREQ_X);
 
 #if defined(SENSORLESS_HOMING)
     void Printer::tmcPrepareHoming(TMC2130Stepper* tmc_driver, uint32_t coolstep_sp_min) {
-        while(!tmc_driver->stst());                     // Wait for motor stand-still
-        tmc_driver->stealth_max_speed(0);               // Upper speed limit for stealthChop
+     while(!tmc_driver->stst());                     // Wait for motor stand-still
+        tmc_driver->stealth_max_speed(0);               // Upper speedlimit for stealthChop
         tmc_driver->stealthChop(false);                 // Turn off stealthChop
-        tmc_driver->coolstep_min_speed(coolstep_sp_min);// Minimum speed for StallGuard triggering
+        tmc_driver->coolstep_min_speed(coolstep_sp_min);// Minimum speed for StallGuard trigerring
         tmc_driver->sg_filter(false);                   // Turn off StallGuard filtering
         tmc_driver->diag1_stall(true);                  // Signal StallGuard on DIAG1 pin
-#if MOTHERBOARD != 310 // Rambo Einsy has diag0 and diag1 bound together so this could cause a defect
         tmc_driver->diag1_active_high(true);            // StallGuard pulses active high
-#endif
     }
 #endif
 

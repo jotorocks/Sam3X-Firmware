@@ -59,6 +59,7 @@ void Commands::commandLoop() {
 }
 
 void Commands::checkForPeriodicalActions(bool allowNewMoves) {
+    Joto::loop();
     Printer::handleInterruptEvent();
     EVENT_PERIODICAL;
 #if defined(DOOR_PIN) && DOOR_PIN > -1
@@ -532,11 +533,7 @@ TMC2130Stepper* tmcDriverByIndex(uint8_t index) {
 void setMotorCurrent( uint8_t driver, uint16_t level ) {
     TMC2130Stepper* tmc_driver = tmcDriverByIndex(driver);
     if(tmc_driver) {
-#if MOTHERBOARD == 310
-		tmc_driver->rms_current(level, 0.5, 0.22);
-#else
         tmc_driver->rms_current(level);
-#endif
     }
 }
 
@@ -1558,8 +1555,7 @@ void Commands::processGCode(GCode *com) {
                     if(off < mins[i]) mins[i] = off;
                     if(off > maxs[i]) maxs[i] = off;
                     if(maxs[i] - mins[i] > G134_PRECISION) {
-                        Com::printWarningFLN(PSTR("Deviation between measurements were too big, please repeat."));
-						Com::printFLN(PSTR("Z Offset not computed due to errors"));
+                        Com::printErrorFLN(PSTR("Deviation between measurements were too big, please repeat."));
                         bigError = true;
                         break;
                     }
@@ -1574,10 +1570,7 @@ void Commands::processGCode(GCode *com) {
 #if EEPROM_MODE != 0
             EEPROM::storeDataIntoEEPROM(0);
 #endif
-			Com::printFLN(PSTR("Z Offset stored"));
-        } else {
-			Com::printFLN(PSTR("Z Offset not computed due to errors"));
-		}
+        }
         Extruder::selectExtruderById(startExtruder);
         Printer::finishProbing();
 #if defined(Z_PROBE_MIN_TEMPERATURE) && Z_PROBE_MIN_TEMPERATURE
@@ -2158,18 +2151,6 @@ void Commands::processMCode(GCode *com) {
         break;
 #endif
     case 203: // M203 Temperature monitor
-		if(com->hasX()) {
-			Printer::maxFeedrate[X_AXIS] = com->X / 60.0f;
-		}
-		if(com->hasY()) {
-			Printer::maxFeedrate[Y_AXIS] = com->Y / 60.0f;
-		}
-		if(com->hasZ()) {
-			Printer::maxFeedrate[Z_AXIS] = com->Z / 60.0f;
-		}
-		if(com->hasE()) {
-			Printer::maxFeedrate[E_AXIS] = com->E / 60.0f;
-		}
         if(com->hasS())
             manageMonitor = com->S != 255;
         else
@@ -2220,28 +2201,6 @@ void Commands::processMCode(GCode *com) {
         if(com->hasS())
             Printer::setAutoretract(com->S != 0);
         break;
-	case 218:
-		{
-		 int extId = 0;
-		 if(com->hasT()) extId = com->T;
-		 if(extId >= 0 && extId < NUM_EXTRUDER) {
-			if(com->hasX()) {
-				extruder[extId].xOffset = com->X * Printer::axisStepsPerMM[X_AXIS];
-			}
-			if(com->hasY()) {
-				 extruder[extId].yOffset = com->Y * Printer::axisStepsPerMM[Y_AXIS];
-			}
-			if(com->hasZ()) {
-				extruder[extId].zOffset = com->Z * Printer::axisStepsPerMM[Z_AXIS];
-			}
-#if EEPROM_MODE > 0
-			if(com->hasS() && com->S > 0) {
-				EEPROM::storeDataIntoEEPROM(false);
-			}
-#endif
-		  }
-		}
-		break;
     case 220: // M220 S<Feedrate multiplier in percent>
         changeFeedrateMultiply(com->getS(100));
         break;
@@ -2891,6 +2850,280 @@ void Commands::processMCode(GCode *com) {
 #endif
         Com::println();
     break;
+
+
+    case 916: // Set individual motor current on Trinamic TMC2130
+        Com::printF(PSTR("Trinamic motor current setting:"));
+        Com::println();
+        if(com->hasNoXYZ() && !com->hasE()) {
+#if TMC2130_ON_X
+            Com::printF(PSTR(" X: I_RMS: "), Printer::tmc_driver_x->rms_current());
+            Com::printF(PSTR(", I_HOLD: "), Printer::tmc_driver_x->hold_current());
+            Com::printF(PSTR(", HOLD_DELAY: "), Printer::tmc_driver_x->hold_delay());
+            Com::printF(PSTR(", R_SENSE: "), Printer::tmc_driver_x->Rsense);
+            Com::println();
+#endif
+#if TMC2130_ON_Y
+            Com::printF(PSTR(" Y: I_RMS: "), Printer::tmc_driver_y->rms_current());
+            Com::printF(PSTR(", I_HOLD: "), Printer::tmc_driver_y->hold_current());
+            Com::printF(PSTR(", HOLD_DELAY: "), Printer::tmc_driver_y->hold_delay());
+            Com::printF(PSTR(", R_SENSE: "), Printer::tmc_driver_y->Rsense);
+            Com::println();
+#endif
+#if TMC2130_ON_Z
+            Com::printF(PSTR(" Z: I_RMS: "), Printer::tmc_driver_z->rms_current());
+            Com::printF(PSTR(", I_HOLD: "), Printer::tmc_driver_z->hold_current());
+            Com::printF(PSTR(", HOLD_DELAY: "), Printer::tmc_driver_z->hold_delay());
+            Com::printF(PSTR(", R_SENSE: "), Printer::tmc_driver_z->Rsense);
+            Com::println();
+#endif
+#if TMC2130_ON_EXT0
+            Com::printF(PSTR(" E0: I_RMS: "), Printer::tmc_driver_e0->rms_current());
+            Com::printF(PSTR(", I_HOLD: "), Printer::tmc_driver_e0->hold_current());
+            Com::printF(PSTR(", HOLD_DELAY: "), Printer::tmc_driver_e0->hold_delay());
+            Com::printF(PSTR(", R_SENSE: "), Printer::tmc_driver_e0->Rsense);
+            Com::println();
+#endif
+#if TMC2130_ON_EXT1
+            Com::printF(PSTR(" E1: I_RMS: "), Printer::tmc_driver_e1->rms_current());
+            Com::printF(PSTR(", I_HOLD: "), Printer::tmc_driver_e1->hold_current());
+            Com::printF(PSTR(", HOLD_DELAY: "), Printer::tmc_driver_e1->hold_delay());
+            Com::printF(PSTR(", R_SENSE: "), Printer::tmc_driver_e1->Rsense);
+            Com::println();
+#endif
+#if TMC2130_ON_EXT2
+            Com::printF(PSTR(" E2: I_RMS: "), Printer::tmc_driver_e2->rms_current());
+            Com::printF(PSTR(", I_HOLD: "), Printer::tmc_driver_xe2>hold_current());
+            Com::printF(PSTR(", HOLD_DELAY: "), Printer::tmc_driver_e2->hold_delay());
+            Com::printF(PSTR(", R_SENSE: "), Printer::tmc_driver_e2->Rsense);
+            Com::println();
+#endif
+          //Com::println();
+        }
+#if TMC2130_ON_X
+        if(com->hasX() && com->hasI() && com->hasH() && com->hasR()) {
+            Com::printF(PSTR(" X: "));
+            Com::printF(PSTR("I:"), (uint16_t) com->I);
+            Com::printF(PSTR(", H:"), (float) com->H);
+            Com::printF(PSTR(", R:"), (float) com->R);
+            Com::println();
+            Printer::tmc_driver_x->rms_current((uint16_t)(com->I), (float)(com->H), (float)(com->R));
+        }
+#endif
+#if TMC2130_ON_Y
+        if(com->hasY() && com->hasI() && com->hasH() && com->hasR()) {
+            Com::printF(PSTR(" Y: "));
+            Com::printF(PSTR("I:"), (uint16_t) com->I);
+            Com::printF(PSTR(", H:"), (float) com->H);
+            Com::printF(PSTR(", R:"), (float) com->R);
+            Com::println();            
+            Printer::tmc_driver_y->rms_current((uint16_t)(com->I), (float)(com->H), (float)(com->R));
+        }
+#endif
+#if TMC2130_ON_Z
+        if(com->hasZ() && com->hasI() && com->hasH() && com->hasR()) {
+            Com::printF(PSTR(" Z: "));
+            Com::printF(PSTR("I:"), (uint16_t) com->I);
+            Com::printF(PSTR(", H:"), (float) com->H);
+            Com::printF(PSTR(", R:"), (float) com->R);
+            Com::println();                    
+            Printer::tmc_driver_z->rms_current((uint16_t)(com->I), (float)(com->H), (float)(com->R));
+        }
+#endif
+#if TMC2130_ON_EXT0
+        if(com->hasE() && ((int)(com->E) == 0) && com->hasI() && com->hasH() && com->hasR()) {
+            Com::printF(PSTR(" E0: "));
+            Com::printF(PSTR("I:"), (uint16_t) com->I);
+            Com::printF(PSTR(", H:"), (float) com->H);
+            Com::printF(PSTR(", R:"), (float) com->R);
+            Com::println();                    
+            Printer::tmc_driver_e0->rms_current((uint16_t)(com->I), (float)(com->H), (float)(com->R));
+        }
+#endif
+#if TMC2130_ON_EXT1
+        if(com->hasE() && ((int)(com->E) == 1) && com->hasI() && com->hasH() && com->hasR()) {
+            Com::printF(PSTR(" E1: "));
+            Com::printF(PSTR("I:"), (uint16_t) com->I);
+            Com::printF(PSTR(", H:"), (float) com->H);
+            Com::printF(PSTR(", R:"), (float) com->R);
+            Com::println();                    
+            Printer::tmc_driver_e1->rms_current((uint16_t)(com->I), (float)(com->H), (float)(com->R));
+        }
+#endif
+#if TMC2130_ON_EXT2
+        if(com->hasE() && ((int)(com->E) == 2) && com->hasI() && com->hasH() && com->hasR()) {
+            Com::printF(PSTR(" E2: "));
+            Com::printF(PSTR("I:"), (uint16_t) com->I);
+            Com::printF(PSTR(", H:"), (float) com->H);
+            Com::printF(PSTR(", R:"), (float) com->R);
+            Com::println();                    
+            Printer::tmc_driver_e2->rms_current((uint16_t)(com->I), (float)(com->H), (float)(com->R));
+        }
+#endif
+    break;
+      
+      //Code by Stefan Wiedemann
+     case 917: // Show driver status of Trinamic TMC2130
+        Com::printF(PSTR("Trinamic driver status:"));
+        Com::println();
+#if TMC2130_ON_X
+        if(com->hasX()) {
+            Com::printF(PSTR(" X:"));
+            Com::println();
+            Com::printF(PSTR("Standstill: "), Printer::tmc_driver_x->stst());
+            Com::println();
+            Com::printF(PSTR("Open load phase A: "), Printer::tmc_driver_x->ola());
+            Com::println();
+            Com::printF(PSTR("Open load phase B: "), Printer::tmc_driver_x->olb());
+            Com::println();
+            Com::printF(PSTR("Short to GND phase A: "), Printer::tmc_driver_x->s2ga());
+            Com::println();
+            Com::printF(PSTR("Short to GND phase B: "), Printer::tmc_driver_x->s2gb());
+            Com::println();
+            Com::printF(PSTR("Overtemperature prewarning: "), Printer::tmc_driver_x->otpw()); 
+            Com::println();
+            Com::printF(PSTR("Overtemperature: "), Printer::tmc_driver_x->ot()); 
+            Com::println();
+            Com::printF(PSTR("Stallguard2 status: "), Printer::tmc_driver_x->stallguard());
+            Com::println();
+            Com::printF(PSTR("Actual motor current: "), Printer::tmc_driver_x->cs_actual());    
+            Com::println();
+            Com::printF(PSTR("Full step active indicator: "), Printer::tmc_driver_x->fsactive());
+            Com::println();
+        }
+#endif
+#if TMC2130_ON_Y
+        if(com->hasY()) {
+            Com::printF(PSTR(" Y:"));
+            Com::println();
+            Com::printF(PSTR("Standstill: "), Printer::tmc_driver_y->stst());
+            Com::println();
+            Com::printF(PSTR("Open load phase A: "), Printer::tmc_driver_y->ola());
+            Com::println();
+            Com::printF(PSTR("Open load phase B: "), Printer::tmc_driver_y->olb());
+            Com::println();
+            Com::printF(PSTR("Short to GND phase A: "), Printer::tmc_driver_y->s2ga());
+            Com::println();
+            Com::printF(PSTR("Short to GND phase B: "), Printer::tmc_driver_y->s2gb());
+            Com::println();
+            Com::printF(PSTR("Overtemperature prewarning: "), Printer::tmc_driver_y->otpw()); 
+            Com::println();
+            Com::printF(PSTR("Overtemperature: "), Printer::tmc_driver_y->ot()); 
+            Com::println();
+            Com::printF(PSTR("Stallguard2 status: "), Printer::tmc_driver_y->stallguard());
+            Com::println();
+            Com::printF(PSTR("Actual motor current: "), Printer::tmc_driver_y->cs_actual());    
+            Com::println();
+            Com::printF(PSTR("Full step active indicator: "), Printer::tmc_driver_y->fsactive());
+            Com::println();
+        }
+#endif
+#if TMC2130_ON_Z
+        if(com->hasZ()) {
+            Com::printF(PSTR(" Z:"));
+            Com::println();
+            Com::printF(PSTR("Standstill: "), Printer::tmc_driver_z->stst());
+            Com::println();
+            Com::printF(PSTR("Open load phase A: "), Printer::tmc_driver_z->ola());
+            Com::println();
+            Com::printF(PSTR("Open load phase B: "), Printer::tmc_driver_x->olb());
+            Com::println();
+            Com::printF(PSTR("Short to GND phase A: "), Printer::tmc_driver_z->s2ga());
+            Com::println();
+            Com::printF(PSTR("Short to GND phase B: "), Printer::tmc_driver_z->s2gb());
+            Com::println();
+            Com::printF(PSTR("Overtemperature prewarning: "), Printer::tmc_driver_z->otpw()); 
+            Com::println();
+            Com::printF(PSTR("Overtemperature: "), Printer::tmc_driver_z->ot()); 
+            Com::println();
+            Com::printF(PSTR("Stallguard2 status: "), Printer::tmc_driver_z->stallguard());
+            Com::println();
+            Com::printF(PSTR("Actual motor current: "), Printer::tmc_driver_z->cs_actual());    
+            Com::println();
+            Com::printF(PSTR("Full step active indicator: "), Printer::tmc_driver_z->fsactive());
+            Com::println();
+        }
+#endif
+#if TMC2130_ON_EXT0
+        if(com->hasE() && ((int)(com->E) == 0)) {
+            Com::printF(PSTR(" E0:"));
+            Com::println();
+            Com::printF(PSTR("Standstill: "), Printer::tmc_driver_e0->stst());
+            Com::println();
+            Com::printF(PSTR("Open load phase A: "), Printer::tmc_driver_e0->ola());
+            Com::println();
+            Com::printF(PSTR("Open load phase B: "), Printer::tmc_driver_e0->olb());
+            Com::println();
+            Com::printF(PSTR("Short to GND phase A: "), Printer::tmc_driver_e0->s2ga());
+            Com::println();
+            Com::printF(PSTR("Short to GND phase B: "), Printer::tmc_driver_e0->s2gb());
+            Com::println();
+            Com::printF(PSTR("Overtemperature prewarning: "), Printer::tmc_driver_e0->otpw()); 
+            Com::println();
+            Com::printF(PSTR("Overtemperature: "), Printer::tmc_driver_e0->ot()); 
+            Com::println();
+            Com::printF(PSTR("Stallguard2 status: "), Printer::tmc_driver_e0->stallguard());
+            Com::println();
+            Com::printF(PSTR("Actual motor current: "), Printer::tmc_driver_e0->cs_actual());    
+            Com::println();
+            Com::printF(PSTR("Full step active indicator: "), Printer::tmc_driver_e0->fsactive());
+            Com::println();
+        }
+#endif
+#if TMC2130_ON_EXT1
+        if(com->hasE() && ((int)(com->E) == 1)) {
+            Com::printF(PSTR(" E1:"));
+            Com::println();
+            Com::printF(PSTR("Standstill: "), Printer::tmc_driver_e1->stst());
+            Com::println();
+            Com::printF(PSTR("Open load phase A: "), Printer::tmc_driver_e1->ola());
+            Com::println();
+            Com::printF(PSTR("Open load phase B: "), Printer::tmc_driver_e1->olb());
+            Com::println();
+            Com::printF(PSTR("Short to GND phase A: "), Printer::tmc_driver_e1->s2ga());
+            Com::println();
+            Com::printF(PSTR("Short to GND phase B: "), Printer::tmc_driver_e1->s2gb());
+            Com::println();
+            Com::printF(PSTR("Overtemperature prewarning: "), Printer::tmc_driver_e1->otpw()); 
+            Com::println();
+            Com::printF(PSTR("Overtemperature: "), Printer::tmc_driver_e1->ot()); 
+            Com::println();
+            Com::printF(PSTR("Stallguard2 status: "), Printer::tmc_driver_e1->stallguard());
+            Com::println();
+            Com::printF(PSTR("Actual motor current: "), Printer::tmc_driver_e1->cs_actual());    
+            Com::println();
+            Com::printF(PSTR("Full step active indicator: "), Printer::tmc_driver_e1->fsactive());
+            Com::println();
+        }
+#endif
+#if TMC2130_ON_EXT2
+        if(com->hasE() && ((int)(com->E) == 2)) {
+            Com::printF(PSTR(" E2:"));
+            Com::println();
+            Com::printF(PSTR("Standstill: "), Printer::tmc_driver_e2->stst());
+            Com::println();
+            Com::printF(PSTR("Open load phase A: "), Printer::tmc_driver_e2->ola());
+            Com::println();
+            Com::printF(PSTR("Open load phase B: "), Printer::tmc_driver_e2->olb());
+            Com::println();
+            Com::printF(PSTR("Short to GND phase A: "), Printer::tmc_driver_e2->s2ga());
+            Com::println();
+            Com::printF(PSTR("Short to GND phase B: "), Printer::tmc_driver_e2->s2gb());
+            Com::println();
+            Com::printF(PSTR("Overtemperature prewarning: "), Printer::tmc_driver_e2->otpw()); 
+            Com::println();
+            Com::printF(PSTR("Overtemperature: "), Printer::tmc_driver_e2->ot()); 
+            Com::println();
+            Com::printF(PSTR("Stallguard2 status: "), Printer::tmc_driver_e2->stallguard());
+            Com::println();
+            Com::printF(PSTR("Actual motor current: "), Printer::tmc_driver_e2->cs_actual());    
+            Com::println();
+            Com::printF(PSTR("Full step active indicator: "), Printer::tmc_driver_e2->fsactive());
+            Com::println();
+        }
+#endif
+    break;
+       
 #endif
     default:
         if(Printer::debugErrors()) {
@@ -2900,6 +3133,9 @@ void Commands::processMCode(GCode *com) {
         }
     }
 }
+
+
+
 
 /**
 \brief Execute the command stored in com.

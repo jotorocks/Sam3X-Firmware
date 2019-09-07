@@ -34,7 +34,7 @@ void Printer::measureDistortion(void) {
     for(int i = 0; i < NUM_EXTRUDER; i++)
         actTemp[i] = extruder[i].tempControl.targetTemperatureC;
     Printer::moveToReal(IGNORE_COORDINATE, IGNORE_COORDINATE, RMath::max(EEPROM::zProbeHeight(), static_cast<float>(ZHOME_HEAT_HEIGHT)), IGNORE_COORDINATE, Printer::homingFeedrate[Z_AXIS]);
-    Commands::waitUntilEndOfAllMoves();
+    Commands::UntilEndOfAllMoves();
 #if ZHOME_HEAT_ALL
     for(int i = 0; i < NUM_EXTRUDER; i++) {
         Extruder::setTemperatureForExtruder(RMath::max(actTemp[i], static_cast<float>(ZPROBE_MIN_TEMPERATURE)), i, false, false);

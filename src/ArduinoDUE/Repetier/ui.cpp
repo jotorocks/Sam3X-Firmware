@@ -1362,12 +1362,7 @@ void UIDisplay::parse(const char *txt, bool ram) {
 #endif
             if (c2 == 'z')
 #if MIN_HARDWARE_ENDSTOP_Z
-#if Z_PROBE_PIN == Z_MIN_PIN
-				// In this case z min is always false, return z probe signal instead
-                addStringP(Endstops::zProbe() ? ui_selected : ui_unselected);
-#else
                 addStringP(Endstops::zMin() ? ui_selected : ui_unselected);
-#endif
 #else
                 addStringP(Com::tSpace);
 #endif
@@ -2503,25 +2498,14 @@ int UIDisplay::okAction(bool allowMoves) {
     unsigned int action;
 #if SDSUPPORT
     if(mtype == UI_MENU_TYPE_FILE_SELECTOR) {
-        uint8_t filePos = menuPos[menuLevel] - 1;
-        char filename[LONG_FILENAME_LENGTH + 1];
         if(menuPos[menuLevel] == 0) { // Selected back instead of file
-			if(folderLevel > 0) {
-				filename[0] = filename[1] = '.';
-				filename[2] = 0;
-				goDir(filename);
-				menuTop[menuLevel] = 0;
-				menuPos[menuLevel] = 1;
-			    refreshPage();
-		        oldMenuLevel = -1;
-	            return 0;
-			} else {
-				return executeAction(UI_ACTION_BACK, allowMoves);
-			}
+            return executeAction(UI_ACTION_BACK, allowMoves);
         }
 
         if(!sd.sdactive)
             return 0;
+        uint8_t filePos = menuPos[menuLevel] - 1;
+        char filename[LONG_FILENAME_LENGTH + 1];
 
         getSDFilenameAt(filePos, filename);
         if(isDirname(filename)) { // Directory change selected
@@ -2650,7 +2634,6 @@ int UIDisplay::okAction(bool allowMoves) {
 #endif
 #if DISTORTION_CORRECTION
             case UI_ACTION_MEASURE_DISTORTION2:
-				uid.popMenu(false);
                 uid.pushMenu(&ui_msg_calibrating_bed, true);
                 Printer::measureDistortion();
                 uid.popMenu(true);
@@ -3522,12 +3505,6 @@ int UIDisplay::executeAction(unsigned int action, bool allowMoves) {
             pushMenu(&ui_menu_eeprom_loaded, false);
             BEEP_LONG;
             break;
-		case UI_ACTION_RESET_EEPROM:
-		    EEPROM::restoreEEPROMSettingsFromConfiguration();
-		    EEPROM::storeDataIntoEEPROM(false);
-            pushMenu(&ui_menu_eeprom_reset, false);
-            BEEP_LONG;
-			break;
 #endif
 #if SDSUPPORT
         case UI_ACTION_SD_DELETE:

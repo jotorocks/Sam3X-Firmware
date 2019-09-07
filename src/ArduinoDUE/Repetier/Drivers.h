@@ -234,8 +234,8 @@ public:
 #if defined(SUPPORT_CNC) && SUPPORT_CNC
 /**
 The CNC driver differs a bit from laser driver. Here only M3,M4,M5 have an influence on the spindle.
-The motor also keeps running for G0 moves. M3 and M4 wait for old moves to be finished and then enables
-the motor. It then waits CNC_WAIT_ON_ENABLE milliseconds for the spindle to reach target speed.
+The motor also keeps running for G0 moves. M3 and M4  for old moves to be finished and then enables
+the motor. It then s CNC__ON_ENABLE milliseconds for the spindle to reach target speed.
 */
 class CNCDriver {
 public:

@@ -141,8 +141,8 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e->xOffset = EXT0_X_OFFSET;
     e->watchPeriod = EXT0_WATCHPERIOD;
 #if RETRACT_DURING_HEATUP
-    e->waitRetractTemperature = EXT0_WAIT_RETRACT_TEMP;
-    e->waitRetractUnits = EXT0_WAIT_RETRACT_UNITS;
+    e->RetractTemperature = EXT0__RETRACT_TEMP;
+    e->RetractUnits = EXT0__RETRACT_UNITS;
 #endif
     e->coolerSpeed = EXT0_EXTRUDER_COOLER_SPEED;
 #if USE_ADVANCE

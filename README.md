@@ -2,31 +2,18 @@
 
 ## Notes for developers/pull requests
 
-This software is open source licensed under the GPL V3. As any free project we
-like contributions from other sources, especially since the firmware is very
-hardware related and many things can only be implemented/tested with the right
-hardware. To allow easy integration of new features you should follow some simple
-principals.
-1. Only send pull requests against development version. This is where we add
-and test new features and bug fixes. From time to time we push these to master
-as a new version.
-2. Do not include your personal configuration files. If you need new configuration
-options, add them to the official configuration.h file.
-3. We have two folders for different processor architectures. So for most
-changes modifications need to be in both folders. The general files are identical.
-In fact we develop on avr and just copy them to due. Only pins.h/fastio.h/hal.*
-and configuration.h are architecture dependent, so changes there need to be made
-twice and not copied.
-4. Document what your pull request will change/fix/introduce. Please also mention
-new configurations since we need to add them also to our online tool, so users
-can set them correctly.
+This software is open source licensed under the GPL V3. Please see gpl.txt
 
-.0 will be the last 1 version. Fixes for this will be done in the dev branch and
-moved to stable after a while as 1.0.x patch updates. With the release of the
-official 1.0 version we will start developing version 2.0 in the branch dev2
-where all the new features will be added.
+### WARRANTY
+WARNING: Please note that Those Ltd. cannot be held responsible for any damage done to your Joto device if you modify or upload a custom version of this firmware. 
+This firmware is provided 'as is' with no warranty. Modified firmware can harm your Joto. Use at your own risk.
 
-### Version 2.0 information
+
+
+
+
+<!-- 
+### Version 1.0 information
 
 Version 2 will be a incompatible refactoring of version 1.0. We will try to keep
 commands and communication identical to 1.0, but for the configuration we see
@@ -141,37 +128,6 @@ This firmware is a nearly complete rewrite of the sprinter firmware by kliment
 which based on Tonokip RepRap firmware rewrite based off of Hydra-mmm firmware.
 Some ideas were also taken from Teacup, Grbl and Marlin.
 
-## Features
-
-- Supports cartesian, delta and core xy/yz printers.
-- RAMP acceleration support.
-- Path planning for higher print speeds.
-- Trajectory smoothing for smoother lines.
-- Nozzle pressure control for improved print quality with RAMPS.
-- Fast - 40000 Hz and more stepper frequency is possible with a 16 MHz AVR.
-- Support for Arduino Due based boards allowing much faster speeds. 
-- Multiple extruder supported (max. 6 extruder).
-- Standard ASCII and improved binary (Repetier protocol) communication.
-- Autodetect the command protocol, so it will work with any host software.
-- Important parameters are stored in EEPROM and can easily be modified without
-  recompilation of the firmware.
-- Automatic bed leveling.
-- Mixed extruder.
-- Detection of heater/thermistor decoupling.
-- 2 fans plus thermistor controlled fan.
-- Multi-Language support, switchable at runtime.
-- Stepper control is handled in an interrupt routine, leaving time for
-  filling caches for next move.
-- PID control for extruder/heated bed temperature.
-- Interrupt based sending buffer (Arduino library normally waits for the
-  recipient to receive written data)
-- Small RAM memory print, resulting in large caches.
-- Supports SD-cards.
-- mm and inches can be used for G0/G1
-- Arc support
-- Dry run : Execute yout GCode without using the extruder. This way you can
-  test for non-extruder related failures without actually printing.
-
 ## Controlling firmware
 
 Also you can control the firmware with any reprap compatible host, you will only get
@@ -189,4 +145,4 @@ For documentation and installation please visit
 
 ## Changelog
 
-See changelog.txt
+See changelog.txt --> -->

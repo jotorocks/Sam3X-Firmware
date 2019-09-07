@@ -157,8 +157,8 @@ void LaserDriver::changeIntensity(secondspeed_t newIntensity)
 #if defined(SUPPORT_CNC) && SUPPORT_CNC
 /**
 The CNC driver differs a bit from laser driver. Here only M3,M4,M5 have an influence on the spindle.
-The motor also keeps running for G0 moves. M3 and M4 wait for old moves to be finished and then enables
-the motor. It then waits CNC_WAIT_ON_ENABLE milliseconds for the spindle to reach target speed.
+The motor also keeps running for G0 moves. M3 and M4  for old moves to be finished and then enables
+the motor. It then s CNC__ON_ENABLE milliseconds for the spindle to reach target speed.
 */
 
 int8_t CNCDriver::direction = 0;
@@ -194,7 +194,7 @@ void CNCDriver::spindleOff()
         WRITE(CNC_ENABLE_PIN,!CNC_ENABLE_WITH);
 #endif
     }
-    HAL::delayMilliseconds(CNC_WAIT_ON_DISABLE);
+    HAL::delayMilliseconds(CNC__ON_DISABLE);
 	direction = 0;
 }
 /** Turns spindle on. Default implementation uses a enable pin CNC_ENABLE_PIN. If
@@ -207,12 +207,10 @@ void CNCDriver::spindleOnCW(int32_t rpm)
   spindleSpeed=map(rpm,0,CNC_RPM_MAX,0,CNC_PWM_MAX);// linear interpolation
 
   
-    if(direction == 1 && spindleRpm == rpm)
+    if(direction == 1)
         return;
-    if(direction == -1) {
-	    spindleOff();
-    }
-    spindleRpm = rpm;// for display
+    spindleOff();
+    spindleRpm=rpm;// for display
     direction = 1;
     if(EVENT_SPINDLE_CW(rpm)) {
 #if CNC_DIRECTION_PIN > -1
@@ -222,7 +220,7 @@ void CNCDriver::spindleOnCW(int32_t rpm)
         WRITE(CNC_ENABLE_PIN, CNC_ENABLE_WITH);
 #endif
     }
-    HAL::delayMilliseconds(CNC_WAIT_ON_ENABLE);
+    HAL::delayMilliseconds(CNC__ON_ENABLE);
 }
 /** Turns spindle on. Default implementation uses a enable pin CNC_ENABLE_PIN. If
 CNC_DIRECTION_PIN is not -1 it sets direction to !CNC_DIRECTION_CW. rpm is ignored.
@@ -233,12 +231,10 @@ void CNCDriver::spindleOnCCW(int32_t rpm)
 {
         spindleSpeed=map(rpm,0,CNC_RPM_MAX,0,CNC_PWM_MAX);// linear interpolation
    
-    if(direction == -1 && spindleRpm == rpm)
+    if(direction == -1)
         return;
-    if(direction == 1) {
-		spindleOff();
-	}
-    spindleRpm = rpm;// for display
+    spindleOff();
+    spindleRpm=rpm;// for display
     direction = -1;
     if(EVENT_SPINDLE_CCW(rpm)) {
 #if CNC_DIRECTION_PIN > -1
@@ -248,6 +244,6 @@ void CNCDriver::spindleOnCCW(int32_t rpm)
         WRITE(CNC_ENABLE_PIN, CNC_ENABLE_WITH);
 #endif
     }
-    HAL::delayMilliseconds(CNC_WAIT_ON_ENABLE);
+    HAL::delayMilliseconds(CNC__ON_ENABLE);
 }
 #endif

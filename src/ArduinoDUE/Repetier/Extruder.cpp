@@ -2356,7 +2356,6 @@ void Extruder::disableAllHeater() {
 }
 
 void TemperatureController::autotunePID(float temp, uint8_t controllerId, int maxCycles, bool storeValues, int method) {
-	ENSURE_POWER
     if(method < 0) method = 0;
     if(method > 4) method = 4;
     float currentTemp;

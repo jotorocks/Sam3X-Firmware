@@ -74,16 +74,12 @@ void SDCard::initsd() {
 #endif
     HAL::pingWatchdog();
     HAL::delayMilliseconds(50); // wait for stabilization of contacts, bootup ...
-#if defined(ENABLE_SOFTWARE_SPI_CLASS) && ENABLE_SOFTWARE_SPI_CLASS
-	fat.begin(SDSS);
-#else
-	fat.begin(SDSS, SD_SCK_MHZ(4)); // dummy init of SD_CARD
-#endif
+    fat.begin(SDSS, SD_SCK_MHZ(50)); // dummy init of SD_CARD
     HAL::delayMilliseconds(50);       // wait for init end
     HAL::pingWatchdog();
     /*if(dir[0].isOpen())
         dir[0].close();*/
-    if (!fat.begin(SDSS, SD_SCK_MHZ(4))) {
+    if (!fat.begin(SDSS, SD_SCK_MHZ(50))) {
         Com::printFLN(Com::tSDInitFail);
         sdmode = 100; // prevent automount loop!
         if (fat.card()->errorCode()) {
@@ -139,7 +135,6 @@ void SDCard::unmount() {
     uid.cwd[1] = 0;
     uid.folderLevel = 0;
 #endif
-	Com::printFLN(PSTR("SD Card unmounted"));
 }
 
 void SDCard::startPrint() {
